@@ -17,8 +17,9 @@ Lets assume that we have started a interactive shell on our server, and so we ne
 
 interact --gpu --egress
 #Load your Anacondas and other snakes ~~~ this is PSC Bridge specific:
-#module load keras/2.0.6_anaconda # PSC Bridge specific,
-#source activate $KERAS_ENV
+cd $HOME/ML_distributed_evaluation
+module load keras/2.0.6_anaconda
+source activate $KERAS_ENV
 
 python server.py
 # tells me "Running on http://0.0.0.0:8123/"
