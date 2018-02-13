@@ -8,7 +8,7 @@ import time
 from timeit import default_timer as timer
 
 
-PORT = "5000"
+PORT = "9992"
 KERAS_REST_API_URL = "http://localhost:"+PORT+"/predict"
 IMAGE_PATH = "small.jpg"
 
@@ -22,7 +22,7 @@ SLEEP_COUNT = 0.15 # here we are still making it
 
 # will highly depend on network/io/... situation
 
-def call_predict_endpoint(n):
+def call_predict_endpoint(n, q):
 	# load the input image and construct the payload for the request
 	start = timer()
 
@@ -38,19 +38,30 @@ def call_predict_endpoint(n):
 	# ensure the request was sucessful
 	if r["success"]:
 		print("[INFO] thread {} OK".format(n), t)
+		q.put({i: r})
 
 	# otherwise, the request failed
 	else:
 		print("[INFO] thread {} FAILED".format(n), t)
 
-# loop over the number of threads
+import queue
+q = queue.Queue()
+threads = []
+
 for i in range(0, NUM_REQUESTS):
 	# start a new thread to call the API
-	t = Thread(target=call_predict_endpoint, args=(i,))
+	t = Thread(target=call_predict_endpoint, args=(i,q))
 	t.daemon = True
 	t.start()
+	threads.append(t)
 	time.sleep(SLEEP_COUNT)
+
+for t in threads:
+	t.join()
+
+for item in iter(q.get, None):
+	print(item)
 
 # insert a long sleep so we can wait until the server is finished
 # processing the images
-time.sleep(300)
+#time.sleep(300)
