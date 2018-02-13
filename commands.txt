@@ -15,25 +15,20 @@ We can use the same for our python server *server.py*:
 Lets assume that we have started a interactive shell on our server, and so we need two tunnels (one from local to server and one from the server to the interactivelly run machine)
 [on server]
 
-interact --gpu --egress
 #Load your Anacondas and other snakes ~~~ this is PSC Bridge specific:
+interact --gpu --egress
 cd $HOME/ML_distributed_evaluation
+git pull
 module load keras/2.0.6_anaconda
 source activate $KERAS_ENV
 
 python server.py
 # tells me "Running on http://0.0.0.0:8123/"
-# because of line 113: app.run(host='0.0.0.0', port=8123)
-
-# to help see what is the name of the interactive machine call:
-squeue -u USERNAME
-# lets assume its name is bobmarley
-# we can now connect to it via: ssh bobmarley
 
 # lets build some tunnels then...
 [on local]
-[local 9999 >> server to bobmarley -> our desired gpu machine 8123]
-ssh -N -f -L  9999:bobmarley:8123 USERNAME@HOST
+[local 9999 >> server to gpuXYZ -> our desired gpu machine 8123]
+ssh -N -f -L  9999:gpu048:8123 USERNAME@HOST # gpuXYZ stands for machine which we got
 
 You are there! Try with:
 web address: http://localhost:9999/predict # should give you "Method Not Allowed"
@@ -49,3 +44,8 @@ request data {'imageshape': [608, 608], 'internal_time': 0.003656726999906823, '
 Time 0.1039813960014726
 request data {'predictions': [{'label': 'cinema', 'probability': 0.3615420460700989}, {'label': 'unicycle', 'probability': 0.22204479575157166}, {'label': 'street_sign', 'probability': 0.05314052477478981}, {'label': 'jinrikisha', 'probability': 0.04694230109453201}, {'label': 'traffic_light', 'probability': 0.04335896298289299}], 'success': True}
 """
+
+
+Kill via
+ps aux | grep ssh
+kill (the one with "ssh -N -f -L  9999:gpuXYZ:8123...")
