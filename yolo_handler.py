@@ -37,7 +37,7 @@ def get_data_from_list(crop_per_frames):
     ground_truths = None
     return image_paths, ground_truths, frame_ids, crop_ids
 
-def run_on_image(IMAGE, yolo_model):
+def run_on_image(IMAGE, yolo_model, sess):
 
     from crop_functions import mask_from_one_image
 
@@ -72,11 +72,11 @@ def run_on_image(IMAGE, yolo_model):
 
     # 2 eval these
     # calculate
-    masks_evaluation_times, masks_additional_times, bboxes_per_frames = run_yolo(crop_data, direct_images, yolo_model)
+    masks_evaluation_times, masks_additional_times, bboxes_per_frames = run_yolo(crop_data, direct_images, yolo_model, sess)
 
     return bboxes_per_frames
 
-def run_yolo(crop_data, direct_images, yolo_model):
+def run_yolo(crop_data, direct_images, yolo_model, sess):
 
     num_crops_per_frames = crop_data["mask_crops_number_per_frames"]
     crop_per_frames = crop_data["mask_crops_per_frames"]
@@ -116,7 +116,7 @@ def run_yolo(crop_data, direct_images, yolo_model):
     args["test_path"]=''
     print(args)
 
-    pureEval_times, ioPlusEval_times, bboxes = eval_yolo_direct_images_take2._main_modelless(args, yolo_model, direct_images=direct_images, crops_bboxes=crop_per_frames, crop_value=fixbb_crop, resize_frames=resize_frames, verbose=VERBOSE, person_only=True, allowed_number_of_boxes=allowed_number_of_boxes)
+    pureEval_times, ioPlusEval_times, bboxes = eval_yolo_direct_images_take2._main_modelless(args, yolo_model, sess, direct_images=direct_images, crops_bboxes=crop_per_frames, crop_value=fixbb_crop, resize_frames=resize_frames, verbose=VERBOSE, person_only=True, allowed_number_of_boxes=allowed_number_of_boxes)
 
     bboxes_per_frames = []
     for i in range(0,num_frames):
@@ -152,44 +152,40 @@ def run_yolo(crop_data, direct_images, yolo_model):
 
     return pureEval_times, ioPlusEval_times, bboxes_per_frames
 
-"""
 
-def run_on_single_crop(CROP, yolo_model):
 
-    bboxes = run_yolo_one_crop(CROP, yolo_model)
+
+def run_on_single_crop(CROP, yolo_model, sess):
+
+    bboxes = run_yolo_one_crop(CROP, yolo_model, sess)
 
     return bboxes
 
-def run_yolo_one_crop(crop_img, yolo_model):
+def run_yolo_one_crop(crop_img, yolo_model, sess):
 
     yolo_paths = ["/home/ekmek/YAD2K/", "/home/vruzicka/storage_pylon2/YAD2K/"]
     path_to_yolo = use_path_which_exists(yolo_paths)
-    import sys,site
+    import site
     site.addsitedir(path_to_yolo)
     import yad2k, eval_yolo, eval_yolo_direct_images_take2
 
     ################################################################
     args = {}
-    allowed_number_of_boxes = 100
-    VERBOSE = 1
-    resize_frames = None
-
-    #model_h5 = 'yolo_832x832.h5'
     args["anchors_path"]=path_to_yolo+'model_data/yolo_anchors.txt'
     args["classes_path"]=path_to_yolo+'model_data/coco_classes.txt'
-    args["model_path"]=path_to_yolo+'model_data/yolo.h5'
     args["score_threshold"]=0.3
     args["iou_threshold"]=0.5
-    args["output_path"]=''
-    args["test_path"]=''
-    print(args)
 
     direct_images = [crop_img]
-    crop_per_frames = [(None, (0, 0, 608, 608))]
-    fixbb_crop = 608
-    pureEval_times, ioPlusEval_times, bboxes = eval_yolo_direct_images_take2._main_modelless(args, yolo_model, direct_images=direct_images, crops_bboxes=crop_per_frames, crop_value=fixbb_crop, resize_frames=resize_frames, verbose=VERBOSE, person_only=True, allowed_number_of_boxes=allowed_number_of_boxes)
+    pureEval_times, ioPlusEval_times, bboxes = eval_yolo_direct_images_take2.one_crop_modelless_sessionless(args, yolo_model, sess, direct_images)
 
-    print("bboxes",bboxes)
+    jsonable_bboxes_all = []
+    for bboxes_inimg in bboxes:
+        jsonable_bboxes = []
+        for bbox in bboxes_inimg:
+            jsonable = [bbox[0], bbox[1].tolist(), float(bbox[2]),int(bbox[3])]
+            jsonable_bboxes.append(jsonable)
 
-    return bboxes
-"""
+        jsonable_bboxes_all.append(jsonable_bboxes)
+
+    return jsonable_bboxes_all

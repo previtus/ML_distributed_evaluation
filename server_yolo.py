@@ -3,6 +3,8 @@ from keras.applications import ResNet50
 from keras.preprocessing.image import img_to_array
 from keras.applications import imagenet_utils
 from keras.models import load_model
+from keras import backend as K
+
 import tensorflow as tf
 from PIL import Image
 import numpy as np
@@ -10,7 +12,7 @@ import flask
 import io
 import os
 from timeit import default_timer as timer
-from yolo_handler import run_on_image #, run_on_single_crop
+from yolo_handler import run_on_image, run_on_single_crop
 
 from yolo_handler import use_path_which_exists
 
@@ -37,6 +39,9 @@ def load_model_yolo(model_path):
     global yolo_model
     yolo_model = load_model(model_path)
     print('{} model, anchors, and classes loaded.'.format(model_path))
+
+    global sess
+    sess = K.get_session()
 
     global graph
     graph = tf.get_default_graph()
@@ -120,8 +125,7 @@ def yolo_full():
 
             with graph.as_default():
                 # evaluate image
-                #preds = model.predict(image)
-                bboxes = run_on_image(image, yolo_model)
+                bboxes = run_on_image(image, yolo_model, sess) # aka many crops
 
                 data["bboxes"] = bboxes
 
@@ -130,7 +134,7 @@ def yolo_full():
 
     return flask.jsonify(data)
 
-"""
+
 @app.route("/yolo_single_crop", methods=["POST"])
 def yolo_single_crop():
     # Evaluate data
@@ -143,8 +147,7 @@ def yolo_single_crop():
 
             with graph.as_default():
                 # evaluate image
-                #preds = model.predict(image)
-                bboxes = run_on_single_crop(image, yolo_model)
+                bboxes = run_on_single_crop(image, yolo_model, sess)
 
                 data["bboxes"] = bboxes
 
@@ -152,7 +155,7 @@ def yolo_single_crop():
                 data["success"] = True
 
     return flask.jsonify(data)
-"""
+
 
 # if this is the main thread of execution first load the model and
 # then start the server

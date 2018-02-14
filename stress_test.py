@@ -8,8 +8,8 @@ import time
 from timeit import default_timer as timer
 
 
-PORT = "9992"
-KERAS_REST_API_URL = "http://localhost:"+PORT+"/predict"
+PORT = "5000"
+YOLO_KERAS_REST_API_URL = "http://localhost:"+PORT+"/yolo_single_crop"
 IMAGE_PATH = "small.jpg"
 
 # initialize the number of requests for the stress test along with
@@ -18,7 +18,7 @@ NUM_REQUESTS = 100
 SLEEP_COUNT = 0.05 # evaluation time grows
 
 NUM_REQUESTS = 100
-SLEEP_COUNT = 0.15 # here we are still making it
+SLEEP_COUNT = 1.0 # here we are still making it
 
 # will highly depend on network/io/... situation
 
@@ -30,7 +30,7 @@ def call_predict_endpoint(n, q):
 	payload = {"image": image}
 
 	# submit the request
-	r = requests.post(KERAS_REST_API_URL, files=payload).json()
+	r = requests.post(YOLO_KERAS_REST_API_URL, files=payload).json()
 
 	end = timer()
 	t = end - start
