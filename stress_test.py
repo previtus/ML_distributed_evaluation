@@ -8,7 +8,7 @@ import time
 from timeit import default_timer as timer
 
 
-PORT = "5000"
+PORT = "9999"
 YOLO_KERAS_REST_API_URL = "http://localhost:"+PORT+"/yolo_image"
 IMAGE_PATH = "small.jpg"
 
@@ -17,8 +17,8 @@ IMAGE_PATH = "small.jpg"
 NUM_REQUESTS = 100
 SLEEP_COUNT = 0.05 # evaluation time grows
 
-NUM_REQUESTS = 50
-SLEEP_COUNT = 3.0
+NUM_REQUESTS = 1000
+SLEEP_COUNT = 0.05
 
 # will highly depend on network/io/... situation
 
