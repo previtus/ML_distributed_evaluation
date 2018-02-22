@@ -28,7 +28,7 @@ python server.py
 # lets build some tunnels then...
 [on local]
 [local 9999 >> server to gpuXYZ -> our desired gpu machine 8123]
-ssh -N -f -L  9999:gpu048:8123 USERNAME@HOST # gpuXYZ stands for machine which we got
+ssh -N -f -L  9999:gpu047:8123 USERNAME@HOST # gpuXYZ stands for machine which we got
 
 You are there! Try with:
 web address: http://localhost:9999/predict # should give you "Method Not Allowed"

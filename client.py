@@ -2,7 +2,7 @@ import requests
 from timeit import default_timer as timer
 
 PORT = "5000"
-YOLO_KERAS_REST_API_URL = "http://localhost:"+PORT+"/yolo_single_crop"
+YOLO_KERAS_REST_API_URL = "http://localhost:"+PORT+"/yolo_image"
 
 IMAGE_PATH = "small.jpg"
 image = open(IMAGE_PATH, "rb").read()
