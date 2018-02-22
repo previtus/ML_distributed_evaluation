@@ -5,12 +5,17 @@ from keras.applications import imagenet_utils
 from keras.models import load_model
 from keras import backend as K
 
+from threading import Thread
+import time
+
+import gc
+
 import tensorflow as tf
 from PIL import Image
 import numpy as np
 import flask
 import io
-import os
+import os, sys
 from timeit import default_timer as timer
 from yolo_handler import run_on_image, run_on_single_crop
 
@@ -19,8 +24,9 @@ from yolo_handler import use_path_which_exists
 # Thanks to the tutorial at: https://blog.keras.io/building-a-simple-keras-deep-learning-rest-api.html
 
 app = flask.Flask(__name__)
-yolo_model = None
+darkflow_model = None
 model = None
+REUSE = False
 
 def load_model_resnet():
     global model
@@ -36,7 +42,7 @@ def load_model_yolo(model_path):
     print(model_path)
     assert model_path.endswith('.h5'), 'Keras model must be a .h5 file.'
 
-    global yolo_model
+    global darkflow_model
     yolo_model = load_model(model_path)
     print('{} model, anchors, and classes loaded.'.format(model_path))
 
@@ -46,6 +52,12 @@ def load_model_yolo(model_path):
     global graph
     graph = tf.get_default_graph()
 
+    global REUSE
+    REUSE = False
+
+def ReuseTrue():
+    global REUSE
+    REUSE = True
 
 def prepare_image(image, target):
    # if the image mode is not RGB, convert it
@@ -61,8 +73,8 @@ def prepare_image(image, target):
    # return the processed image
    return image
 
-@app.route("/time", methods=["POST"])
-def time():
+@app.route("/time_transfer", methods=["POST"])
+def time_transfer():
    # Time transferring and loading the file
 
    data = {"success": False}
@@ -125,7 +137,7 @@ def yolo_full():
 
             with graph.as_default():
                 # evaluate image
-                bboxes = run_on_image(image, yolo_model, sess) # aka many crops
+                bboxes = run_on_image(image, darkflow_model, sess) # aka many crops
 
                 data["bboxes"] = bboxes
 
@@ -145,16 +157,47 @@ def yolo_single_crop():
             image = flask.request.files["image"].read()
             image = Image.open(io.BytesIO(image))
 
-            with graph.as_default():
-                # evaluate image
-                bboxes = run_on_single_crop(image, yolo_model, sess)
+            with tf.variable_scope("model", reuse=REUSE):
 
-                data["bboxes"] = bboxes
+                with graph.as_default():
+                    # evaluate image
+                    bboxes = run_on_single_crop(image, darkflow_model, sess)
 
-                # indicate that the request was a success
-                data["success"] = True
+                    data["bboxes"] = bboxes
+
+                    # indicate that the request was a success
+                    data["success"] = True
+
+            ReuseTrue()
+            gc.collect()
 
     return flask.jsonify(data)
+
+def mem_monitor_deamon():
+    import resource
+    import subprocess
+    while (True):
+        """
+        #import psutil
+        #process = psutil.Process(os.getpid())
+        #mem = process.get_memory_info()[0] / float(2 ** 20)
+        #return mem
+
+        rusage_denom = 1024.
+        if sys.platform == 'darwin':
+            # ... it seems that in OSX the output is different units ...
+            rusage_denom = rusage_denom * rusage_denom
+        mem = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / rusage_denom
+        #return mem
+        """
+
+        out = subprocess.Popen(['ps', 'v', '-p', str(os.getpid())],
+                               stdout=subprocess.PIPE).communicate()[0].split(b'\n')
+        vsz_index = out[0].split().index(b'RSS')
+        mem = float(out[1].split()[vsz_index]) / 1024
+
+        print("Memory:", mem)
+        time.sleep(2.0) # check every 2 sec
 
 
 # if this is the main thread of execution first load the model and
@@ -170,6 +213,12 @@ if __name__ == "__main__":
     yolo_path = path_to_yolo + 'model_data/' + model_h5
 
     load_model_yolo(yolo_path)
+
+    t = Thread(target=mem_monitor_deamon, args=())
+    t.daemon = True
+    t.start()
+
+
     app.run()
     # On server:
     #app.run(host='0.0.0.0', port=8123)

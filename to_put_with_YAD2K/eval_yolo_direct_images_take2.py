@@ -11,7 +11,7 @@ from keras import backend as K
 from keras.models import load_model
 from PIL import Image, ImageDraw, ImageFont
 
-from yad2k.models.keras_yolo import yolo_eval, yolo_head
+from yad2k.models.keras_yolo_reuse import yolo_eval, yolo_head
 
 from timeit import default_timer as timer
 
@@ -33,7 +33,7 @@ def _main_modelless(args, yolo_model, sess, direct_images, crops_bboxes, crop_va
     anchors_path = os.path.expanduser(args["anchors_path"])
     classes_path = os.path.expanduser(args["classes_path"])
 
-    #sess = K.get_session()  # TODO: Remove dependence on Tensorflow session.
+    sess = K.get_session()  # TODO: Remove dependence on Tensorflow session.
 
     with open(classes_path) as f:
         class_names = f.readlines()
@@ -200,7 +200,18 @@ def _main_modelless(args, yolo_model, sess, direct_images, crops_bboxes, crop_va
 
     return pureEval_times, ioPlusEval_times, bboxes
 
+def print_out_all_vars():
+    import tensorflow as tf
+    for v in tf.global_variables():
+        print(v.name, v)
+    print("Count of global variables", len(tf.global_variables()))
 
+    count = 0
+    for i in tf.get_default_graph().get_operations():
+        print(i.name)
+        count += 1
+    print("Count of graph elements",count)
+    print("Count of graph elements",len(tf.get_default_graph().get_operations()))
 
 def one_crop_modelless(args, yolo_model, direct_images, verbose=1, person_only=True, allowed_number_of_boxes=500):
     score_threshold = args["score_threshold"]
@@ -252,7 +263,6 @@ def one_crop_modelless(args, yolo_model, direct_images, verbose=1, person_only=T
     yolo_outputs = yolo_head(yolo_model.output, anchors, len(class_names))
     input_image_shape = K.placeholder(shape=(2, ))
 
-
     ####### EVALUATION
 
     boxes, scores, classes = yolo_eval(
@@ -337,146 +347,10 @@ def one_crop_modelless(args, yolo_model, direct_images, verbose=1, person_only=T
         loop_time = (end_loop - start_loop)
         ioeval_times.append(loop_time - evaluation_time)
 
-    #sess.close()
-
-    return eval_times, ioeval_times, bboxes
-
-def one_crop_modelless_sessionless(args, yolo_model, sess, direct_images, verbose=1, person_only=True, allowed_number_of_boxes=500):
-    score_threshold = args["score_threshold"]
-    iou_threshold = args["iou_threshold"]
-    '''
-
-    :param args: yolo model args like in YAD2K
-    :param direct_images: images
-    :param crops_bboxes: list of lists - crops per frames
-    :param verbose:
-    :param person_only:
-    :return:
-    '''
-
-    print("direct_images", len(direct_images))
-
-
-    anchors_path = os.path.expanduser(args["anchors_path"])
-    classes_path = os.path.expanduser(args["classes_path"])
-
-    #sess = K.get_session()  # TODO: Remove dependence on Tensorflow session.
-
-    with open(classes_path) as f:
-        class_names = f.readlines()
-    class_names = [c.strip() for c in class_names]
-
-    with open(anchors_path) as f:
-        anchors = f.readline()
-        anchors = [float(x) for x in anchors.split(',')]
-        anchors = np.array(anchors).reshape(-1, 2)
-
-
-    # Verify model, anchors, and classes are compatible
-    num_classes = len(class_names)
-    num_anchors = len(anchors)
-    # TODO: Assumes dim ordering is channel last
-    model_output_channels = yolo_model.layers[-1].output_shape[-1]
-    assert model_output_channels == num_anchors * (num_classes + 5), \
-        'Mismatch between model and given anchor and class sizes. ' \
-        'Specify matching anchors and classes with --anchors_path and ' \
-        '--classes_path flags.'
-
-    # Check if model is fully convolutional, assuming channel last order.
-    model_image_size = yolo_model.layers[0].input_shape[1:3]
-    is_fixed_size = model_image_size != (None, None)
-
-    # Generate output tensor targets for filtered bounding boxes.
-    # TODO: Wrap these backend operations with Keras layers.
-    yolo_outputs = yolo_head(yolo_model.output, anchors, len(class_names))
-    input_image_shape = K.placeholder(shape=(2, ))
-
-
-    ####### EVALUATION
-
-    boxes, scores, classes = yolo_eval(
-        yolo_outputs,
-        input_image_shape,
-        score_threshold=score_threshold,
-        iou_threshold=iou_threshold,
-        max_boxes=allowed_number_of_boxes)
-
-    eval_times = []
-    ioeval_times = []
-    bboxes = []
-
-    evaluation_time = 0
-
-    for image_i in range(0,len(direct_images)):
-        start_loop = timer()
-
-        image = direct_images[image_i]
-
-        if is_fixed_size:  # TODO: When resizing we can use minibatch input.
-            resized_image = image.resize(
-                    tuple(reversed(model_image_size)), Image.BICUBIC)
-            image_data = np.array(resized_image, dtype='float32')
-        else:
-            # Due to skip connection + max pooling in YOLO_v2, inputs must have
-            # width and height as multiples of 32.
-            new_image_size = (image.width - (image.width % 32),
-                                  image.height - (image.height % 32))
-            resized_image = image.resize(new_image_size, Image.BICUBIC)
-            image_data = np.array(resized_image, dtype='float32')
-            print(image_data.shape)
-
-
-        image_data /= 255.
-        image_data = np.expand_dims(image_data, 0)  # Add batch dimension.
-
-
-        ################# START #################
-        start_eval = timer()
-        out_boxes, out_scores, out_classes = sess.run(
-                [boxes, scores, classes],
-                feed_dict={
-                    yolo_model.input: image_data,
-                    input_image_shape: [image.size[1], image.size[0]],
-                    K.learning_phase(): 0
-                })
-        end_eval = timer()
-        ################# END #################
-        evaluation_time = (end_eval - start_eval)
-        eval_times.append(evaluation_time)
-
-        people = 0
-        bboxes_image = []
-        #print(num_frames, num_crops)
-        for i, c in reversed(list(enumerate(out_classes))):
-
-            predicted_class = class_names[c]
-
-            if predicted_class == 'person':
-                people += 1
-            if person_only and (predicted_class != 'person'):
-                continue
-
-            box = out_boxes[i]
-            score = out_scores[i]
-
-            #print(predicted_class, box, score)
-
-            bboxes_image.append([predicted_class, box, score, c])
-
-        if verbose > 0:
-            num = len(out_boxes)
-            if person_only:
-                num = people
-            print('Found {} boxes in image {} in {}s'.format(num, image_i, evaluation_time))
-
-
-        bboxes.append(bboxes_image)
-
-        end_loop = timer()
-        loop_time = (end_loop - start_loop)
-        ioeval_times.append(loop_time - evaluation_time)
+    import tensorflow as tf
+    print("Count of global variables", len(tf.global_variables()))
+    print("Count of graph elements",len(tf.get_default_graph().get_operations()))
 
     #sess.close()
 
     return eval_times, ioeval_times, bboxes
-

@@ -178,7 +178,6 @@ def run_yolo_one_crop(crop_img, yolo_model, sess):
 
     direct_images = [crop_img]
     pureEval_times, ioPlusEval_times, bboxes = eval_yolo_direct_images_take2.one_crop_modelless(args, yolo_model, direct_images)
-    #pureEval_times, ioPlusEval_times, bboxes = eval_yolo_direct_images_take2.one_crop_modelless_sessionless(args, yolo_model, sess, direct_images)
 
     jsonable_bboxes_all = []
     for bboxes_inimg in bboxes:
