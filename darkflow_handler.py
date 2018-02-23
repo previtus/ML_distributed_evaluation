@@ -1,4 +1,6 @@
 from darkflow.net.build import TFNet
+from darkflow_extension import predict_extend
+
 import numpy
 
 def load_model():
@@ -29,3 +31,13 @@ def run_on_image(image_object, model):
     result = convert_numpy_floats(result)
 
     return result
+
+def run_on_images(image_objects, model):
+
+    results = predict_extend(model, image_objects)
+
+    print("len(results)",len(results))
+    for i in range(0,len(results)):
+        results[i] = convert_numpy_floats(results[i])
+
+    return results
