@@ -10,7 +10,8 @@ from timeit import default_timer as timer
 
 PORT = "5000"
 YOLO_KERAS_REST_API_URL = "http://localhost:"+PORT+"/get_all_bboxes"
-SLEEP_COUNT = 0.2
+SLEEP_COUNT = 0.01 #server
+SLEEP_COUNT = 1.0
 
 def check_for_updates():
     while True:

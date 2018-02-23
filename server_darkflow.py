@@ -75,13 +75,15 @@ def enqueue_image():
             # read the image in PIL format
             image = flask.request.files["image"].read()
             uid = flask.request.files["uid"].read()
+            time = flask.request.files["time"].read()
 
             uid = int(uid)
+            time = float(time)
 
             image = Image.open(io.BytesIO(image))
             image = img_to_array(image)
 
-            serverside_queues.put_crop_to_queue(image, uid)
+            serverside_queues.put_crop_to_queue(image, uid, time)
             # indicate that the request was a success
             data["success"] = True
 

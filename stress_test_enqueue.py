@@ -18,6 +18,9 @@ IMAGE_PATH = "small.jpg"
 NUM_REQUESTS = 50 # local
 SLEEP_COUNT = 2.0
 
+#NUM_REQUESTS = 1000 # server
+#SLEEP_COUNT = 0.05
+
 # will highly depend on network/io/... situation
 
 def call_predict_endpoint(n, q):
@@ -25,7 +28,7 @@ def call_predict_endpoint(n, q):
 	start = timer()
 
 	image = open(IMAGE_PATH, "rb").read()
-	payload = {"image": image, "uid": str(n)}
+	payload = {"image": image, "uid": str(n), "time": str(start)}
 
 	# submit the request
 	r = requests.post(YOLO_KERAS_REST_API_URL, files=payload).json()

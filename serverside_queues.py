@@ -11,8 +11,8 @@ bboxes_queue = queue.Queue()
 
 # CROPS
 
-def put_crop_to_queue(crop_image, uid):
-    time = timer()
+def put_crop_to_queue(crop_image, uid, time):
+    #time = timer()
     queue_object = [uid, time, crop_image]
     crop_queue.put(queue_object)
 

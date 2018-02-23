@@ -8,17 +8,18 @@ import time
 from timeit import default_timer as timer
 
 
-PORT = "9999"
+PORT = "5000"
 YOLO_KERAS_REST_API_URL = "http://localhost:"+PORT+"/yolo_image"
 IMAGE_PATH = "small.jpg"
 
 # initialize the number of requests for the stress test along with
 # the sleep amount between requests
-NUM_REQUESTS = 100
-SLEEP_COUNT = 0.05 # evaluation time grows
 
-NUM_REQUESTS = 1000
+NUM_REQUESTS = 1000 # server
 SLEEP_COUNT = 0.05
+
+NUM_REQUESTS = 50 # local
+SLEEP_COUNT = 1.0
 
 # will highly depend on network/io/... situation
 
