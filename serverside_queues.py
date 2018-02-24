@@ -5,7 +5,8 @@
 
 import queue
 from timeit import default_timer as timer
-
+import server_darkflow
+import time
 crop_queue = queue.Queue()
 bboxes_queue = queue.Queue()
 
@@ -117,3 +118,31 @@ def get_all_bboxes_from_queue(filter_time=None):
     if len(bboxes)>0:
         print("Got ",len(bboxes), "bboxes from the queue. (Asked for all)")
     return bboxes
+
+# Server deamons
+
+
+def queue_evaluator_deamon(darkflow_model, n, wait):
+    # job of this deamon is to be always checking the crops queue and evaluating it
+
+    # test with just getting the data from it at start...
+    while (True):
+        crops = get_crops_from_queue(n)
+
+        if len(crops) > 0:
+            #crops = serverside_queues.get_all_from_queue()
+
+            uids_objects = [items[0] for items in crops]
+            times_objects = [items[1] for items in crops]
+            image_objects = [items[2] for items in crops] # get images
+
+            print("Loaded",len(crops),"crops with uids",uids_objects,"as a batch. (... will evaluate)")
+
+            results_bboxes = server_darkflow.run_on_images(image_objects=image_objects, model=darkflow_model)
+
+            print("Evaluated uids", uids_objects, "crops as a batch.")
+
+            put_bboxes_to_queue(results_bboxes, uids_objects, times_objects)
+
+        if wait > 0.0:
+            time.sleep(wait)

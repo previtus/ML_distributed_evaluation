@@ -66,6 +66,36 @@ def yolo_image():
 
     return flask.jsonify(data)
 
+@app.route("/yolo_image_batch", methods=["POST"])
+def yolo_image_batch():
+    # Evaluate data
+    data = {"success": False}
+    if flask.request.method == "POST":
+        images = []
+        uids = []
+
+        for key in flask.request.files:
+            image = flask.request.files[key].read()
+            image = Image.open(io.BytesIO(image))
+            image = img_to_array(image)
+            images.append(image)
+            uids.append(key)
+
+        print("Received",len(images),"images.", uids, [i.size for i in images])
+
+        # evaluate image
+        #bboxes = run_on_image(image, darkflow_model)
+
+        results_bboxes = run_on_images(image_objects=images, model=darkflow_model)
+
+        data["bboxes"] = results_bboxes
+        data["uids"] = uids
+
+        # indicate that the request was a success
+        data["success"] = True
+
+    return flask.jsonify(data)
+
 @app.route("/enqueue_image", methods=["POST"])
 def enqueue_image():
     # Evaluate data
@@ -113,31 +143,6 @@ def mem_monitor_deamon():
         print("Memory:", mem)
         time.sleep(2.0) # check every 2 sec
 
-def queue_evaluator_deamon(n, wait):
-    # job of this deamon is to be always checking the crops queue and evaluating it
-
-    # test with just getting the data from it at start...
-    while (True):
-        crops = serverside_queues.get_crops_from_queue(n)
-
-        if len(crops) > 0:
-            #crops = serverside_queues.get_all_from_queue()
-
-            uids_objects = [items[0] for items in crops]
-            times_objects = [items[1] for items in crops]
-            image_objects = [items[2] for items in crops] # get images
-
-            print("Loaded",len(crops),"crops with uids",uids_objects,"as a batch. (... will evaluate)")
-
-            results_bboxes = run_on_images(image_objects=image_objects, model=darkflow_model)
-
-            print("Evaluated uids", uids_objects, "crops as a batch.")
-
-            serverside_queues.put_bboxes_to_queue(results_bboxes, uids_objects, times_objects)
-
-        if wait > 0.0:
-            time.sleep(wait)
-
 if __name__ == "__main__":
     print(("* Loading Keras model and Flask starting server..."
         "please wait until server has fully started"))
@@ -147,11 +152,14 @@ if __name__ == "__main__":
     t.daemon = True
     t.start()
 
-    n = 2
-    wait = 0.0
-    t = Thread(target=queue_evaluator_deamon, args=(n, wait))
-    t.daemon = True
-    t.start()
+    ServerQueuesTurnedOn = True
+
+    if (ServerQueuesTurnedOn):
+        n = 2
+        wait = 0.0
+        t = Thread(target=serverside_queues.queue_evaluator_deamon, args=(darkflow_model, n, wait))
+        t.daemon = True
+        t.start()
 
     app.run()
     # On server:
