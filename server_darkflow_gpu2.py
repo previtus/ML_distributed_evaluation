@@ -20,8 +20,8 @@ REUSE = False
 
 def load_model_darkflow():
     global darkflow_model
-    darkflow_model = load_model()
-    print('Model loaded.')
+    darkflow_model = load_model(2.0)
+    print('Model loaded on second GPU.')
 
 @app.route("/time_transfer", methods=["POST"])
 def time_transfer():
@@ -161,6 +161,6 @@ if __name__ == "__main__":
         t.daemon = True
         t.start()
 
-    app.run()
+    #app.run()
     # On server:
-    #app.run(host='0.0.0.0', port=8123)
+    app.run(host='0.0.0.0', port=8126)

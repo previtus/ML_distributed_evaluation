@@ -3,13 +3,13 @@ from darkflow_extension import predict_extend
 
 import numpy
 
-def load_model():
+def load_model(gpuname=1.0):
     options = {#"model": "cfg/yolo.cfg",
                #"load": "bin/yolo.weights",
                "pbLoad": "built_graph/yolo.pb",
                "metaLoad": "built_graph/yolo.meta",
                "threshold": 0.1,
-               "gpu": 1.0}
+               "gpu": gpuname}
     #self.define('pbLoad', '', 'path to .pb protobuf file (metaLoad must also be specified)')
     #self.define('metaLoad', '', 'path to .meta file generated during --savepb that corresponds to .pb file')
 
