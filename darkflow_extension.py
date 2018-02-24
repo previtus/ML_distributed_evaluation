@@ -38,7 +38,7 @@ def predict_extend(tfnet, input_images, batch_size=-1):
         out = tfnet.sess.run(tfnet.out, feed_dict)
         stop = time.time(); last = stop - start
         tfnet.say('Eval time = {}s / {} inps = {} ips'.format(
-            last, len(inp_feed), len(inp_feed) / last))
+            last, len(inp_feed), last / len(inp_feed)))
 
         # Post processing
         tfnet.say('Post processing {} inputs ...'.format(len(inp_feed)))

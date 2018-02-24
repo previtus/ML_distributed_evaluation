@@ -6,7 +6,7 @@ YOLO_KERAS_REST_API_URL = "http://localhost:"+PORT+"/enqueue_image"
 
 IMAGE_PATH = "small.jpg"
 image = open(IMAGE_PATH, "rb").read()
-payload = {"image": image, "uid": "42"}
+payload = {"image": image, "uid": "42", "time":str(timer()) }
 
 # submit the request
 start = timer()
