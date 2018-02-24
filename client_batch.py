@@ -3,12 +3,10 @@ from timeit import default_timer as timer
 
 PORT = "5000"
 YOLO_KERAS_REST_API_URL = "http://localhost:"+PORT+"/yolo_image_batch"
-
 IMAGE_PATH = "small.jpg"
 
 C = 2 # 8, 16
 
-uids = []
 payload = {}
 for i in range(C):
     image = open(IMAGE_PATH, "rb").read()
