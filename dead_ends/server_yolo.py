@@ -1,25 +1,23 @@
 # import the necessary packages
-from keras.applications import ResNet50
-from keras.preprocessing.image import img_to_array
-from keras.applications import imagenet_utils
-from keras.models import load_model
-from keras import backend as K
-
-from threading import Thread
-import time
-
 import gc
+import io
+import os
+import time
+from threading import Thread
+from timeit import default_timer as timer
 
+import flask
+import numpy as np
 import tensorflow as tf
 from PIL import Image
-import numpy as np
-import flask
-import io
-import os, sys
-from timeit import default_timer as timer
-from yolo_handler import run_on_image, run_on_single_crop
+from keras import backend as K
+from keras.applications import ResNet50
+from keras.applications import imagenet_utils
+from keras.models import load_model
+from keras.preprocessing.image import img_to_array
 
-from yolo_handler import use_path_which_exists
+from dead_ends.yolo_handler import run_on_image, run_on_single_crop
+from dead_ends.yolo_handler import use_path_which_exists
 
 # Thanks to the tutorial at: https://blog.keras.io/building-a-simple-keras-deep-learning-rest-api.html
 
@@ -174,7 +172,6 @@ def yolo_single_crop():
     return flask.jsonify(data)
 
 def mem_monitor_deamon():
-    import resource
     import subprocess
     while (True):
         """
